@@ -12,14 +12,18 @@ const {
 } = require("../validators/invitationValidator");
 
 const validate = require("../middleware/validationMiddleware");
-
 const { authenticate } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
+
+const {
+  invitationRateLimiter,
+} = require("../middleware/rateLimitMiddleware");
 
 router.post(
   "/",
   authenticate,
-  authorize("admin"), // Only admins can create invitations
+  authorize("admin"),
+  invitationRateLimiter,
   createInvitationValidator,
   validate,
   createInvitation
