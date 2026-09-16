@@ -3,7 +3,7 @@ const {
   Chat,
   ChatParticipant,
 } = require("../models");
-
+const { Op } = require("sequelize");
 const getMessages = async (chatId, userId, role) => {
   const chat = await Chat.findByPk(chatId, {
     include: [
@@ -125,9 +125,61 @@ const markMessageRead = async (messageId, userId) => {
 
   return message;
 };
+const getUnreadCount = async (chatId, userId) => {
+  const chat = await Chat.findByPk(chatId, {
+    include: [
+      {
+        model: ChatParticipant,
+        as: "participants",
+      },
+    ],
+  });
+
+  if (!chat) {
+    throw new Error("Chat not found");
+  }
+
+  const isParticipant = chat.participants.some(
+    (participant) => participant.userId === userId
+  );
+
+  if (!isParticipant) {
+    throw new Error("Access denied");
+  }
+
+  const unreadCount = await Message.count({
+    where: {
+      chatId,
+      readAt: null,
+      senderId: {
+        [Op.ne]: userId,
+      },
+    },
+  });
+
+  return unreadCount;
+};
+const getChatReceiver = async (chatId, senderId) => {
+  const participant = await ChatParticipant.findOne({
+    where: {
+      chatId,
+      userId: {
+        [Op.ne]: senderId,
+      },
+    },
+  });
+
+  if (!participant) {
+    throw new Error("Chat receiver not found");
+  }
+
+  return participant.userId;
+};
 module.exports = {
   getMessages,
     sendMessage,
     markMessageDelivered,
     markMessageRead,
+    getUnreadCount,
+    getChatReceiver,
 };

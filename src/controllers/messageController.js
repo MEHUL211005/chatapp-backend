@@ -41,7 +41,29 @@ const sendMessage = async (req, res, next) => {
     next(error);
   }
 };
+const getUnreadCount = async (req, res, next) => {
+  try {
+    const { chatId } = req.params;
+
+    const unreadCount = await messageService.getUnreadCount(
+      chatId,
+      req.user.userId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Unread count fetched successfully",
+      data: {
+        chatId,
+        unreadCount,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   getMessages,
   sendMessage,
+  getUnreadCount,
 };

@@ -108,34 +108,60 @@ socket.on("message_delivered", async (messageId) => {
     }
   });
   // Send message
-  socket.on("send_message", async (data) => {
-    try {
-      const {
-        chatId,
-        content,
-        messageType = "text",
-      } = data;
+socket.on("send_message", async (data) => {
+  try {
+    const {
+      chatId,
+      content,
+      messageType = "text",
+    } = data;
 
-      const message = await messageService.sendMessage(
+    const message = await messageService.sendMessage(
+      chatId,
+      socket.user.userId,
+      socket.user.role,
+      content,
+      messageType
+    );
+
+    // Send new message to chat participants
+    io.to(`chat:${chatId}`).emit(
+      "new_message",
+      message
+    );
+
+    // Find receiver
+    const receiverId =
+      await messageService.getChatReceiver(
         chatId,
-        socket.user.userId,
-        socket.user.role,
-        content,
-        messageType
+        socket.user.userId
       );
 
-      io.to(`chat:${chatId}`).emit(
-        "new_message",
-        message
+    // Get receiver's latest unread count
+    const unreadCount =
+      await messageService.getUnreadCount(
+        chatId,
+        receiverId
       );
-    } catch (error) {
-      console.error("Send message error:", error);
 
-      socket.emit("socket_error", {
-        message: error.message || "Unable to send message",
-      });
-    }
-  });
+    // Send unread count only to receiver
+    io.to(`user:${receiverId}`).emit(
+      "unread_count_updated",
+      {
+        chatId,
+        unreadCount,
+      }
+    );
+  } catch (error) {
+    console.error("Send message error:", error);
+
+    socket.emit("socket_error", {
+      message:
+        error.message ||
+        "Unable to send message",
+    });
+  }
+});
 };
 
 module.exports = registerChatSocket;
