@@ -62,8 +62,48 @@ const getUnreadCount = async (req, res, next) => {
     next(error);
   }
 };
+const editMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    const message = await messageService.editMessage(
+      messageId,
+      req.user.userId,
+      content
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Message edited successfully",
+      data: message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+const deleteMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+
+    const message = await messageService.deleteMessage(
+      messageId,
+      req.user.userId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Message deleted successfully",
+      data: message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   getMessages,
   sendMessage,
   getUnreadCount,
+  editMessage,
+  deleteMessage,
 };

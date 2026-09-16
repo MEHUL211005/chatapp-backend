@@ -175,6 +175,70 @@ const getChatReceiver = async (chatId, senderId) => {
 
   return participant.userId;
 };
+const editMessage = async (
+  messageId,
+  userId,
+  content
+) => {
+  const message = await Message.findByPk(messageId);
+
+  if (!message) {
+    throw new Error("Message not found");
+  }
+
+  // Only message sender can edit
+  if (message.senderId !== userId) {
+    throw new Error(
+      "You can only edit your own messages"
+    );
+  }
+
+  // Deleted messages cannot be edited
+  if (message.isDeleted) {
+    throw new Error(
+      "Deleted message cannot be edited"
+    );
+  }
+
+  if (!content || !content.trim()) {
+    throw new Error("Message content is required");
+  }
+
+  message.content = content.trim();
+  message.isEdited = true;
+
+  await message.save();
+
+  return message;
+};
+const deleteMessage = async (
+  messageId,
+  userId
+) => {
+  const message = await Message.findByPk(messageId);
+
+  if (!message) {
+    throw new Error("Message not found");
+  }
+
+  // Only message sender can delete
+  if (message.senderId !== userId) {
+    throw new Error(
+      "You can only delete your own messages"
+    );
+  }
+
+  if (message.isDeleted) {
+    throw new Error("Message is already deleted");
+  }
+
+  message.isDeleted = true;
+  message.content = null;
+
+  await message.save();
+
+  return message;
+};
 module.exports = {
   getMessages,
     sendMessage,
@@ -182,4 +246,6 @@ module.exports = {
     markMessageRead,
     getUnreadCount,
     getChatReceiver,
+  editMessage,
+  deleteMessage
 };

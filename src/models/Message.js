@@ -47,6 +47,16 @@ readAt: {
   type: DataTypes.DATE,
   allowNull: true,
 },
+isEdited: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: false,
+},
+isDeleted: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: false,
+},
     },
     {
       sequelize,

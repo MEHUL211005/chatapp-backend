@@ -189,6 +189,59 @@ const registerChatSocket = (io, socket) => {
         "new_notification",
         notification
       );
+      // Edit message
+socket.on("edit_message", async (data) => {
+  try {
+    const { messageId, content } = data;
+
+    const message = await messageService.editMessage(
+      messageId,
+      socket.user.userId,
+      content
+    );
+
+    io.to(`chat:${message.chatId}`).emit(
+      "message_edited",
+      message
+    );
+  } catch (error) {
+    console.error("Edit message error:", error);
+
+    socket.emit("socket_error", {
+      message:
+        error.message ||
+        "Unable to edit message",
+    });
+  }
+});
+// Delete message for everyone
+socket.on("delete_message", async (data) => {
+  try {
+    const { messageId } = data;
+
+    const message =
+      await messageService.deleteMessage(
+        messageId,
+        socket.user.userId
+      );
+
+    io.to(`chat:${message.chatId}`).emit(
+      "message_deleted",
+      message
+    );
+  } catch (error) {
+    console.error(
+      "Delete message error:",
+      error
+    );
+
+    socket.emit("socket_error", {
+      message:
+        error.message ||
+        "Unable to delete message",
+    });
+  }
+});
     } catch (error) {
       console.error(
         "Send message error:",
