@@ -1,5 +1,7 @@
 const { ChatParticipant } = require("../models");
+
 const messageService = require("../services/messageService");
+const notificationService = require("../services/notificationService");
 
 const registerChatSocket = (io, socket) => {
   // Join chat
@@ -20,6 +22,10 @@ const registerChatSocket = (io, socket) => {
 
       socket.join(`chat:${chatId}`);
 
+      console.log(
+        `User ${socket.user.userId} joined chat:${chatId}`
+      );
+
       socket.emit("chat_joined", {
         chatId,
       });
@@ -36,56 +42,68 @@ const registerChatSocket = (io, socket) => {
   socket.on("leave_chat", (chatId) => {
     socket.leave(`chat:${chatId}`);
 
+    console.log(
+      `User ${socket.user.userId} left chat:${chatId}`
+    );
+
     socket.emit("chat_left", {
       chatId,
     });
   });
-socket.on("typing_start", (chatId) => {
-  socket.to(`chat:${chatId}`).emit("user_typing", {
-    userId: socket.user.userId,
-  });
-});
 
-socket.on("typing_stop", (chatId) => {
-  socket.to(`chat:${chatId}`).emit("user_stopped_typing", {
-    userId: socket.user.userId,
+  // Typing indicator
+  socket.on("typing_start", (chatId) => {
+    socket.to(`chat:${chatId}`).emit("user_typing", {
+      userId: socket.user.userId,
+    });
   });
-});
-socket.on("message_delivered", async (messageId) => {
-  try {
-    const message =
-      await messageService.markMessageDelivered(
-        messageId
-      );
 
-    // Delivery update chat ke sabhi connected users ko
-    io.to(`chat:${message.chatId}`).emit(
-      "message_delivery_updated",
+  socket.on("typing_stop", (chatId) => {
+    socket.to(`chat:${chatId}`).emit(
+      "user_stopped_typing",
       {
-        messageId: message.id,
-        deliveredAt: message.deliveredAt,
+        userId: socket.user.userId,
       }
     );
-  } catch (error) {
-    console.error(
-      "Message delivery error:",
-      error
-    );
+  });
 
-    socket.emit("socket_error", {
-      message:
-        error.message ||
-        "Unable to mark message as delivered",
-    });
-  }
-});
+  // Message delivered
+  socket.on("message_delivered", async (messageId) => {
+    try {
+      const message =
+        await messageService.markMessageDelivered(
+          messageId
+        );
+
+      io.to(`chat:${message.chatId}`).emit(
+        "message_delivery_updated",
+        {
+          messageId: message.id,
+          deliveredAt: message.deliveredAt,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Message delivery error:",
+        error
+      );
+
+      socket.emit("socket_error", {
+        message:
+          error.message ||
+          "Unable to mark message as delivered",
+      });
+    }
+  });
+
   // Read receipt
   socket.on("message_read", async (messageId) => {
     try {
-      const message = await messageService.markMessageRead(
-        messageId,
-        socket.user.userId
-      );
+      const message =
+        await messageService.markMessageRead(
+          messageId,
+          socket.user.userId
+        );
 
       io.to(`chat:${message.chatId}`).emit(
         "message_read_updated",
@@ -107,61 +125,83 @@ socket.on("message_delivered", async (messageId) => {
       });
     }
   });
+
   // Send message
-socket.on("send_message", async (data) => {
-  try {
-    const {
-      chatId,
-      content,
-      messageType = "text",
-    } = data;
-
-    const message = await messageService.sendMessage(
-      chatId,
-      socket.user.userId,
-      socket.user.role,
-      content,
-      messageType
-    );
-
-    // Send new message to chat participants
-    io.to(`chat:${chatId}`).emit(
-      "new_message",
-      message
-    );
-
-    // Find receiver
-    const receiverId =
-      await messageService.getChatReceiver(
+  socket.on("send_message", async (data) => {
+    try {
+      const {
         chatId,
-        socket.user.userId
+        content,
+        messageType = "text",
+      } = data;
+
+      const message =
+        await messageService.sendMessage(
+          chatId,
+          socket.user.userId,
+          socket.user.role,
+          content,
+          messageType
+        );
+
+      // Send new message to chat participants
+      io.to(`chat:${chatId}`).emit(
+        "new_message",
+        message
       );
 
-    // Get receiver's latest unread count
-    const unreadCount =
-      await messageService.getUnreadCount(
-        chatId,
-        receiverId
+      // Find receiver
+      const receiverId =
+        await messageService.getChatReceiver(
+          chatId,
+          socket.user.userId
+        );
+
+      // Get receiver's latest unread count
+      const unreadCount =
+        await messageService.getUnreadCount(
+          chatId,
+          receiverId
+        );
+
+      // Send unread count only to receiver
+      io.to(`user:${receiverId}`).emit(
+        "unread_count_updated",
+        {
+          chatId,
+          unreadCount,
+        }
       );
 
-    // Send unread count only to receiver
-    io.to(`user:${receiverId}`).emit(
-      "unread_count_updated",
-      {
-        chatId,
-        unreadCount,
-      }
-    );
-  } catch (error) {
-    console.error("Send message error:", error);
+      // Create persistent notification
+      const notification =
+        await notificationService.createNotification({
+          userId: receiverId,
+          type: "new_message",
+          chatId,
+          messageId: message.id,
+          senderId: socket.user.userId,
+          message: "You have a new message",
+        });
 
-    socket.emit("socket_error", {
-      message:
-        error.message ||
-        "Unable to send message",
-    });
-  }
-});
+      // Send real-time notification
+      io.to(`user:${receiverId}`).emit(
+        "new_notification",
+        notification
+      );
+    } catch (error) {
+      console.error(
+        "Send message error:",
+        error
+      );
+
+      socket.emit("socket_error", {
+        message:
+          error.message ||
+          "Unable to send message",
+      });
+    }
+  });
 };
 
 module.exports = registerChatSocket;

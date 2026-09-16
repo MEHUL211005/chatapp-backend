@@ -5,6 +5,7 @@ const setupAssociations = (models) => {
     Chat,
     ChatParticipant,
     Message,
+    Notification
   } = models;
 
   // User ↔ Invitation
@@ -60,6 +61,45 @@ const setupAssociations = (models) => {
   Message.belongsTo(User, {
     foreignKey: "senderId",
     as: "sender",
+  });
+    User.hasMany(Notification, {
+    foreignKey: "userId",
+    as: "notifications",
+  });
+
+  Notification.belongsTo(User, {
+    foreignKey: "userId",
+    as: "user",
+  });
+
+  User.hasMany(Notification, {
+    foreignKey: "senderId",
+    as: "sentNotifications",
+  });
+
+  Notification.belongsTo(User, {
+    foreignKey: "senderId",
+    as: "sender",
+  });
+
+  Chat.hasMany(Notification, {
+    foreignKey: "chatId",
+    as: "notifications",
+  });
+
+  Notification.belongsTo(Chat, {
+    foreignKey: "chatId",
+    as: "chat",
+  });
+
+  Message.hasMany(Notification, {
+    foreignKey: "messageId",
+    as: "notifications",
+  });
+
+  Notification.belongsTo(Message, {
+    foreignKey: "messageId",
+    as: "messageRecord",
   });
 };
 
