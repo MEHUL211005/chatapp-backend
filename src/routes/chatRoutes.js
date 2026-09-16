@@ -1,7 +1,9 @@
+
 const express = require("express");
 
 const router = express.Router();
-
+const { paginationValidator } = require("../validators/paginationValidator");
+const validate = require("../middleware/validationMiddleware");
 const {
   createChat,
   getChats,
@@ -18,6 +20,8 @@ router.post(
 router.get(
   "/",
   authenticate,
+  paginationValidator,
+  validate,
   getChats
 );
 

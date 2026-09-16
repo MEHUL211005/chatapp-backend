@@ -1,7 +1,11 @@
 const express = require("express");
 
 const router = express.Router();
+const {
+  paginationValidator,
+} = require("../validators/paginationValidator");
 
+const validate = require("../middleware/validationMiddleware");
 const {
   getMessages,
     sendMessage,
@@ -15,6 +19,8 @@ const { authenticate } = require("../middleware/authMiddleware");
 router.get(
   "/:chatId/messages",
   authenticate,
+  paginationValidator,
+  validate,
   getMessages
 );
 router.post(

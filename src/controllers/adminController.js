@@ -19,13 +19,19 @@ const getDashboard = async (req, res, next) => {
 // Get all users
 const getAllUsers = async (req, res, next) => {
   try {
-    const users =
-      await adminService.getAllUsers();
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const result =
+      await adminService.getAllUsers(
+        page,
+        limit
+      );
 
     return res.status(200).json({
       success: true,
       message: "Users fetched successfully",
-      data: users,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -105,13 +111,18 @@ const deleteUser = async (req, res, next) => {
 // Get all chats
 const getAllChats = async (req, res, next) => {
   try {
-    const chats =
-      await adminService.getAllChats();
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const result = await adminService.getAllChats(
+      page,
+      limit
+    );
 
     return res.status(200).json({
       success: true,
       message: "Chats fetched successfully",
-      data: chats,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -139,13 +150,20 @@ const getChatMessages = async (req, res, next) => {
   try {
     const { chatId } = req.params;
 
-    const messages =
-      await adminService.getChatMessages(chatId);
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    const result =
+      await adminService.getChatMessages(
+        chatId,
+        page,
+        limit
+      );
 
     return res.status(200).json({
       success: true,
       message: "Chat messages fetched successfully",
-      data: messages,
+      data: result,
     });
   } catch (error) {
     next(error);

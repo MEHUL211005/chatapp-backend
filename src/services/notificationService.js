@@ -21,17 +21,33 @@ const createNotification = async ({
   return notification;
 };
 
-const getNotifications = async (userId) => {
-  const notifications = await Notification.findAll({
-    where: {
-      userId,
+const getNotifications = async (
+  userId,
+  page = 1,
+  limit = 20
+) => {
+  const offset = (page - 1) * limit;
+
+  const { rows, count } =
+    await Notification.findAndCountAll({
+      where: {
+        userId,
+      },
+      order: [["createdAt", "DESC"]],
+      limit,
+      offset,
+    });
+
+  return {
+    notifications: rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
     },
-    order: [["createdAt", "DESC"]],
-  });
-
-  return notifications;
+  };
 };
-
 const markNotificationRead = async (
   notificationId,
   userId

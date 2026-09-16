@@ -1,7 +1,11 @@
 const express = require("express");
 
 const router = express.Router();
+const {
+  paginationValidator,
+} = require("../validators/paginationValidator");
 
+const validate = require("../middleware/validationMiddleware");
 const {
   getNotifications,
   markNotificationRead,
@@ -13,6 +17,8 @@ const { authenticate } = require("../middleware/authMiddleware");
 router.get(
   "/",
   authenticate,
+  paginationValidator,
+  validate,
   getNotifications
 );
 

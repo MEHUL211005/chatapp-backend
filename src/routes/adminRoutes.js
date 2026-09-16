@@ -16,7 +16,11 @@ const {
 
 const { authenticate } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
+const {
+  paginationValidator,
+} = require("../validators/paginationValidator");
 
+const validate = require("../middleware/validationMiddleware");
 // All admin routes require authentication + admin role
 router.use(authenticate);
 router.use(authorize("admin"));
@@ -30,6 +34,8 @@ router.get(
 // Users
 router.get(
   "/users",
+  paginationValidator,
+  validate, 
   getAllUsers
 );
 
@@ -54,6 +60,8 @@ router.delete(
 // Chats
 router.get(
   "/chats",
+  paginationValidator,
+  validate,
   getAllChats
 );
 
@@ -63,6 +71,8 @@ router.get(
 );
 router.get(
   "/chats/:chatId/messages",
+  paginationValidator,
+  validate,
   getChatMessages
 );
 

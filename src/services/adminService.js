@@ -42,8 +42,10 @@ const getDashboard = async () => {
   };
 };
 
-const getAllUsers = async () => {
-  return User.findAll({
+const getAllUsers = async (page = 1, limit = 10) => {
+  const offset = (page - 1) * limit;
+
+  const { rows, count } = await User.findAndCountAll({
     attributes: [
       "id",
       "name",
@@ -55,7 +57,19 @@ const getAllUsers = async () => {
       "createdAt",
     ],
     order: [["createdAt", "DESC"]],
+    limit,
+    offset,
   });
+
+  return {
+    users: rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+    },
+  };
 };
 
 const getUserById = async (userId) => {
@@ -199,8 +213,10 @@ const deleteUser = async (userId, currentAdminId) => {
     throw error;
   }
 };
-const getAllChats = async () => {
-  return Chat.findAll({
+const getAllChats = async (page = 1, limit = 10) => {
+  const offset = (page - 1) * limit;
+
+  const { rows, count } = await Chat.findAndCountAll({
     include: [
       {
         model: ChatParticipant,
@@ -223,7 +239,20 @@ const getAllChats = async () => {
       },
     ],
     order: [["updatedAt", "DESC"]],
+    limit,
+    offset,
+    distinct: true,
   });
+
+  return {
+    chats: rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+    },
+  };
 };
 const getChatById = async (chatId) => {
   const chat = await Chat.findByPk(chatId, {
@@ -256,35 +285,52 @@ const getChatById = async (chatId) => {
 
   return chat;
 };
-const getChatMessages = async (chatId) => {
-  // First check whether chat exists
+const getChatMessages = async (
+  chatId,
+  page = 1,
+  limit = 20
+) => {
+  const offset = (page - 1) * limit;
+
+  // Check chat exists
   const chat = await Chat.findByPk(chatId);
 
   if (!chat) {
     throw new Error("Chat not found");
   }
 
-  // Get all messages of this chat
-  const messages = await Message.findAll({
-    where: {
-      chatId,
-    },
-    include: [
-      {
-        model: User,
-        as: "sender",
-        attributes: [
-          "id",
-          "name",
-          "email",
-          "role",
-        ],
+  const { rows, count } =
+    await Message.findAndCountAll({
+      where: {
+        chatId,
       },
-    ],
-    order: [["createdAt", "ASC"]],
-  });
+      include: [
+        {
+          model: User,
+          as: "sender",
+          attributes: [
+            "id",
+            "name",
+            "email",
+            "role",
+          ],
+        },
+      ],
+      order: [["createdAt", "ASC"]],
+      limit,
+      offset,
+      distinct: true,
+    });
 
-  return messages;
+  return {
+    messages: rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+    },
+  };
 };
 module.exports = {
   getDashboard,

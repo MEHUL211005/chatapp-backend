@@ -4,7 +4,15 @@ const {
   ChatParticipant,
 } = require("../models");
 const { Op } = require("sequelize");
-const getMessages = async (chatId, userId, role) => {
+const getMessages = async (
+  chatId,
+  userId,
+  role,
+  page = 1,
+  limit = 20
+) => {
+  const offset = (page - 1) * limit;
+
   const chat = await Chat.findByPk(chatId, {
     include: [
       {
@@ -26,14 +34,25 @@ const getMessages = async (chatId, userId, role) => {
     throw new Error("Access denied");
   }
 
-  const messages = await Message.findAll({
-    where: {
-      chatId,
-    },
-    order: [["createdAt", "ASC"]],
-  });
+  const { rows, count } =
+    await Message.findAndCountAll({
+      where: {
+        chatId,
+      },
+      order: [["createdAt", "ASC"]],
+      limit,
+      offset,
+    });
 
-  return messages;
+  return {
+    messages: rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+    },
+  };
 };
 const sendMessage = async (
   chatId,

@@ -4,16 +4,21 @@ const getMessages = async (req, res, next) => {
   try {
     const { chatId } = req.params;
 
-    const messages = await messageService.getMessages(
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    const result = await messageService.getMessages(
       chatId,
       req.user.userId,
-      req.user.role
+      req.user.role,
+      page,
+      limit
     );
 
     return res.status(200).json({
       success: true,
       message: "Messages fetched successfully",
-      data: messages,
+      data: result,
     });
   } catch (error) {
     next(error);

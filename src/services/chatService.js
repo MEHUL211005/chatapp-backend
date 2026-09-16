@@ -72,41 +72,61 @@ const createChat = async (currentUserId, participantId) => {
     throw error;
   }
 };
-const getChats = async (userId, role) => {
-  const where = {};
+const getChats = async (
+  userId,
+  role,
+  page = 1,
+  limit = 20
+) => {
+  const offset = (page - 1) * limit;
 
-  if (role !== "admin") {
-    where.userId = userId;
-  }
+  const where =
+    role !== "admin"
+      ? { userId }
+      : undefined;
 
-  const chats = await Chat.findAll({
-    include: [
-      {
-        model: ChatParticipant,
-        as: "participants",
-        where: Object.keys(where).length ? where : undefined,
-        required: role !== "admin",
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: [
-              "id",
-              "name",
-              "email",
-              "role",
-              "lastSeen",
-            ],
-          },
-        ],
-      },
-    ],
-    order: [["updatedAt", "DESC"]],
-  });
+  const { rows, count } =
+    await Chat.findAndCountAll({
+      include: [
+        {
+          model: ChatParticipant,
+          as: "participants",
+          where,
+          required: role !== "admin",
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: [
+                "id",
+                "name",
+                "email",
+                "role",
+                "lastSeen",
+                "isOnline",
+              ],
+            },
+          ],
+        },
+      ],
+      order: [["updatedAt", "DESC"]],
+      limit,
+      offset,
+      distinct: true,
+    });
 
-  return chats;
+  return {
+    chats: rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+    },
+  };
 };
+
 module.exports = {
   createChat,
-    getChats,
+  getChats,
 };
