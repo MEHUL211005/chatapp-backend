@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 
 const app = require("./app");
 const sequelize = require("./config/database");
+
 const registerChatSocket = require("./sockets/chatSocket");
 const registerPresenceSocket = require("./sockets/presenceSocket");
 
@@ -21,6 +22,9 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+// Make Socket.IO available inside Express controllers
+app.set("io", io);
 
 // Socket authentication
 io.use((socket, next) => {
@@ -51,8 +55,10 @@ io.on("connection", (socket) => {
   console.log("User connected:", userId);
   console.log("Socket ID:", socket.id);
 
+  // Personal user room
   socket.join(`user:${userId}`);
 
+  // Register socket handlers
   registerPresenceSocket(io, socket);
   registerChatSocket(io, socket);
 });

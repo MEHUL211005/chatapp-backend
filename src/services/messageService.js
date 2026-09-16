@@ -4,6 +4,9 @@ const {
   ChatParticipant,
 } = require("../models");
 const { Op } = require("sequelize");
+const {
+  deleteFromCloudinary,
+} = require("./cloudinaryService");
 const getMessages = async (
   chatId,
   userId,
@@ -59,7 +62,8 @@ const sendMessage = async (
   senderId,
   role,
   content,
-  messageType = "text"
+  messageType = "text",
+  attachment = null
 ) => {
   const chat = await Chat.findByPk(chatId, {
     include: [
@@ -82,24 +86,45 @@ const sendMessage = async (
     throw new Error("Access denied");
   }
 
-  if (!content || !content.trim()) {
-    throw new Error("Message content is required");
+  if (
+    (!content || !content.trim()) &&
+    !attachment
+  ) {
+    throw new Error(
+      "Message content or attachment is required"
+    );
   }
 
-  const message = await Message.create({
+  return Message.create({
     chatId,
     senderId,
-    content: content.trim(),
+    content: content?.trim() || null,
     messageType,
-  });
 
-  return message;
+    attachmentUrl: attachment?.secure_url || null,
+    attachmentName: attachment?.originalname || null,
+    attachmentSize: attachment?.bytes || null,
+    attachmentMimeType: attachment?.mimetype || null,
+    attachmentPublicId: attachment?.public_id || null,
+    attachmentResourceType: attachment?.resource_type || null,
+  });
 };
-const markMessageDelivered = async (messageId) => {
+const markMessageDelivered = async (messageId, userId) => {
   const message = await Message.findByPk(messageId);
 
   if (!message) {
     throw new Error("Message not found");
+  }
+
+  const participant = await ChatParticipant.findOne({
+    where: {
+      chatId: message.chatId,
+      userId,
+    },
+  });
+
+  if (!participant || message.senderId === userId) {
+    throw new Error("Access denied");
   }
 
   if (!message.deliveredAt) {
@@ -249,6 +274,13 @@ const deleteMessage = async (
 
   if (message.isDeleted) {
     throw new Error("Message is already deleted");
+  }
+
+  if (message.attachmentPublicId) {
+    await deleteFromCloudinary(
+      message.attachmentPublicId,
+      message.attachmentResourceType || "image"
+    );
   }
 
   message.isDeleted = true;

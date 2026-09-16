@@ -72,7 +72,8 @@ const registerChatSocket = (io, socket) => {
     try {
       const message =
         await messageService.markMessageDelivered(
-          messageId
+          messageId,
+          socket.user.userId
         );
 
       io.to(`chat:${message.chatId}`).emit(
@@ -132,7 +133,6 @@ const registerChatSocket = (io, socket) => {
       const {
         chatId,
         content,
-        messageType = "text",
       } = data;
 
       const message =
@@ -141,7 +141,7 @@ const registerChatSocket = (io, socket) => {
           socket.user.userId,
           socket.user.role,
           content,
-          messageType
+          "text"
         );
 
       // Send new message to chat participants

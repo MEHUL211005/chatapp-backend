@@ -6,6 +6,7 @@ const {
 } = require("../validators/paginationValidator");
 
 const validate = require("../middleware/validationMiddleware");
+const upload = require("../middleware/uploadMiddleware");
 const {
   getMessages,
     sendMessage,
@@ -26,6 +27,7 @@ router.get(
 router.post(
   "/:chatId/messages",
   authenticate,
+  upload.single("file"),
   sendMessage
 );
 router.get(

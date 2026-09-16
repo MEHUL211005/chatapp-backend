@@ -26,7 +26,34 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+attachmentUrl: {
+  type: DataTypes.TEXT,
+  allowNull: true,
+},
 
+attachmentName: {
+  type: DataTypes.STRING,
+  allowNull: true,
+},
+
+attachmentSize: {
+  type: DataTypes.BIGINT,
+  allowNull: true,
+},
+
+attachmentMimeType: {
+  type: DataTypes.STRING,
+  allowNull: true,
+},
+attachmentPublicId: {
+  type: DataTypes.STRING,
+  allowNull: true,
+},
+
+attachmentResourceType: {
+  type: DataTypes.STRING,
+  allowNull: true,
+},
       messageType: {
         type: DataTypes.ENUM(
           "text",
